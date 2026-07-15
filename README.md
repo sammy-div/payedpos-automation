@@ -4,6 +4,23 @@ A production-ready, modular automation platform for the PayedPOS dashboard that 
 
 **This platform is 100% READ-ONLY and will never modify PayedPOS data.**
 
+## Web Dashboard (Next.js, deployed on Vercel)
+
+`app/`, `components/`, and `lib/` at the repo root are a Next.js (App Router + TypeScript) operations dashboard: Dashboard, Automations, Reports, Snapshots, Logs, Configuration, and Health pages.
+
+It's deliberately decoupled from the Playwright automation below:
+
+- **This Next.js app** — the UI. Deploys to Vercel. Renders every page dynamically (no stale build-time data) so it always reflects live state once connected.
+- **`src/server.js`** — the actual automation (unchanged, see architecture below). Vercel functions aren't built to run a persistent headless browser, so this keeps running on an always-on host (Railway, Fly.io, a VPS, Docker, etc.).
+
+Set `AUTOMATION_API_URL` (see `.env.example`) to point the dashboard at a deployed `src/server.js` instance. Until then, every page runs on realistic demo data (clearly marked with a "DEMO DATA" badge) so the UI is fully explorable with zero setup.
+
+```bash
+npm install
+npm run dev              # Next.js dashboard, http://localhost:3000
+npm run automation:server        # Playwright automation API, separately
+```
+
 ## Overview
 
 This project is a **reusable, platform-wide automation framework** designed as a long-term foundation for PayedPOS operations. Instead of one-time scrapers, we built:

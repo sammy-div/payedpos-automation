@@ -1,23 +1,43 @@
 {
   "name": "payedpos-automation",
   "version": "1.0.0",
-  "description": "Production-ready foundation for Playwright-based PayedPOS automation",
+  "description": "Production-ready Next.js operations dashboard, backed by a Playwright-based read-only PayedPOS automation framework",
   "private": true,
-  "type": "commonjs",
   "scripts": {
-    "start": "node src/index.js",
-    "server": "node src/server.js",
-    "server:dev": "node --watch src/server.js",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "automation:cli": "node src/index.js",
+    "automation:server": "node src/server.js",
+    "automation:server:dev": "node --watch src/server.js",
     "export:dashboard": "node src/scripts/export-dashboard.js",
     "export:terminals": "node src/scripts/export-terminals.js",
     "export:merchants": "node src/scripts/export-merchants.js",
     "setup:playwright": "playwright install chromium"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/space-grotesk": "^5.2.10",
     "docx": "^9.0.0",
     "dotenv": "^16.4.0",
     "express": "^4.18.2",
+    "lucide-react": "^1.24.0",
+    "next": "16.2.10",
     "playwright": "^1.49.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "xlsx": "^0.18.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
