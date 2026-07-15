@@ -1,5 +1,5 @@
-const logger = require('../../utils/logger');
-const { AutomationError } = require('../../utils/errors');
+const logger = require('../utils/logger');
+const { AutomationError } = require('../utils/errors');
 
 /**
  * AnalyticsEngine - Generic data analysis and aggregation
