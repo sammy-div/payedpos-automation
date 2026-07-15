@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayedPOS Automation Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      display: flex;
+      gap: 20px;
+      margin-top: 15px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.idle {
+      background: #10b981;
+      animation: none;
+    }
+
+    .status-dot.running {
+      background: #f59e0b;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .card h2 {
+      color: #333;
+      font-size: 18px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon {
+      font-size: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      color: #666;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .button.secondary {
+      background: #f3f4f6;
+      color: #333;
+    }
+
+    .result {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+      font-size: 13px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .result.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #dc2626;
+    }
+
+    .result.success {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+
+    .file-list {
+      list-style: none;
+    }
+
+    .file-item {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-item a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .file-item a:hover {
+      text-decoration: underline;
+    }
+
+    .file-size {
+      color: #999;
+      font-size: 12px;
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .checkbox-group {
+      display: flex;
+      gap: 15px;
+      margin: 10px 0;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      cursor: pointer;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .tab {
+      padding: 12px 16px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: #999;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(102, 126, 234, 0.2);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    footer {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 10px;
+      margin-top: 30px;
+    }
+
+    footer p {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    @media (max-width: 768px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 PayedPOS Automation Dashboard</h1>
+      <p style="color: #999; margin-top: 5px;">Production-ready read-only operations assistant</p>
+      <div class="status">
+        <div class="status-item">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="statusText">Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Export Card -->
+      <div class="card">
+        <h2><span class="icon">📦</span> Full Export</h2>
+        <div class="form-group">
+          <label>Route</label>
+          <select id="exportRoute">
+            <option value="dashboard">Dashboard</option>
+            <option value="pos-terminals">POS Terminals</option>
+            <option value="merchants">Merchants</option>
+            <option value="assigned">Assigned</option>
+            <option value="unassigned">Unassigned</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Export Formats</label>
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input type="checkbox" id="formatExcel" checked>
+              <label for="formatExcel" style="margin: 0; text-transform: none; font-weight: normal; text-transform: capitalize;">Excel</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="formatSnapshot" checked>
+              <label for="formatSnapshot" style="margin: 0; text-transform: none; font-weight: normal; text-transform: capitalize;">Snapshot</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="formatWord">
+              <label for="formatWord" style="margin: 0; text-transform: none; font-weight: normal; text-transform: capitalize;">Word</label>
+            </div>
+          </div>
+        </div>
+        <button class="button" onclick="executeExport()" id="exportBtn">
+          <span class="loading" id="exportLoading" style="display: none; margin-right: 8px;"></span>
+          <span id="exportBtnText">Start Export</span>
+        </button>
+        <div class="result" id="exportResult" style="display: none;"></div>
+      </div>
+
+      <!-- Search Card -->
+      <div class="card">
+        <h2><span class="icon">🔍</span> Search</h2>
+        <div class="form-group">
+          <label>Route</label>
+          <select id="searchRoute">
+            <option value="merchants">Merchants</option>
+            <option value="pos-terminals">POS Terminals</option>
+            <option value="dashboard">Dashboard</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Search Query</label>
+          <input type="text" id="searchQuery" placeholder="Enter search term...">
+        </div>
+        <button class="button" onclick="executeSearch()" id="searchBtn">
+          <span class="loading" id="searchLoading" style="display: none; margin-right: 8px;"></span>
+          <span id="searchBtnText">Search</span>
+        </button>
+        <div class="result" id="searchResult" style="display: none;"></div>
+      </div>
+
+      <!-- Analyze Card -->
+      <div class="card">
+        <h2><span class="icon">📊</span> Analyze</h2>
+        <div class="form-group">
+          <label>Route</label>
+          <select id="analyzeRoute">
+            <option value="pos-terminals">POS Terminals</option>
+            <option value="merchants">Merchants</option>
+            <option value="dashboard">Dashboard</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Operation</label>
+          <select id="analyzeOperation">
+            <option value="countBy">Count By</option>
+            <option value="groupBy">Group By</option>
+            <option value="topN">Top N</option>
+            <option value="sort">Sort</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Field</label>
+          <input type="text" id="analyzeField" placeholder="e.g., Status, Name">
+        </div>
+        <button class="button" onclick="executeAnalyze()" id="analyzeBtn">
+          <span class="loading" id="analyzeLoading" style="display: none; margin-right: 8px;"></span>
+          <span id="analyzeBtnText">Analyze</span>
+        </button>
+        <div class="result" id="analyzeResult" style="display: none;"></div>
+      </div>
+
+      <!-- Files Card -->
+      <div class="card full-width">
+        <h2><span class="icon">📁</span> Recent Exports</h2>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('exports')">Files</button>
+          <button class="tab" onclick="switchTab('snapshots')">Snapshots</button>
+        </div>
+        <div id="exports" class="tab-content active">
+          <ul class="file-list" id="exportsList">
+            <li style="color: #999; padding: 20px; text-align: center;">Loading...</li>
+          </ul>
+        </div>
+        <div id="snapshots" class="tab-content">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Snapshot 1</label>
+              <select id="snapshot1"></select>
+            </div>
+            <div class="form-group">
+              <label>Snapshot 2</label>
+              <select id="snapshot2"></select>
+            </div>
+          </div>
+          <button class="button" onclick="compareSnapshots()" id="compareBtn">
+            <span class="loading" id="compareLoading" style="display: none; margin-right: 8px;"></span>
+            <span id="compareBtnText">Compare Snapshots</span>
+          </button>
+          <div class="result" id="compareResult" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Logs Card -->
+      <div class="card full-width">
+        <h2><span class="icon">📝</span> Recent Logs</h2>
+        <button class="button secondary" onclick="refreshLogs()">Refresh Logs</button>
+        <div class="result" id="logsList" style="margin-top: 15px;"></div>
+      </div>
+    </main>
+
+    <footer>
+      <p>🔒 Read-only PayedPOS automation platform | Built with Node.js + Playwright</p>
+    </footer>
+  </div>
+
+  <script>
+    // ========================================================================
+    // State Management
+    // ========================================================================
+
+    let appState = {
+      running: false,
+      lastResult: null
+    };
+
+    // ========================================================================
+    // Utility Functions
+    // ========================================================================
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function showStatus(running) {
+      appState.running = running;
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      
+      if (running) {
+        dot.className = 'status-dot running';
+        text.textContent = 'Running...';
+      } else {
+        dot.className = 'status-dot idle';
+        text.textContent = 'Ready';
+      }
+
+      // Disable/enable buttons
+      document.querySelectorAll('button.button').forEach(btn => {
+        btn.disabled = running;
+      });
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // ========================================================================
+    // API Calls
+    // ========================================================================
+
+    async function executeExport() {
+      const route = document.getElementById('exportRoute').value;
+      const formats = [];
+      if (document.getElementById('formatExcel').checked) formats.push('excel');
+      if (document.getElementById('formatWord').checked) formats.push('word');
+      if (document.getElementById('formatSnapshot').checked) formats.push('snapshot');
+
+      if (formats.length === 0) {
+        alert('Select at least one format');
+        return;
+      }
+
+      showStatus(true);
+      const result = document.getElementById('exportResult');
+      result.textContent = 'Exporting...';
+      result.style.display = 'block';
+
+      try {
+        const response = await fetch('/api/export', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ route, formats })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+          result.className = 'result success';
+          result.textContent = `✓ Export completed!\n\n${JSON.stringify(data.result, null, 2)}`;
+          loadExports();
+        } else {
+          result.className = 'result error';
+          result.textContent = `✗ Error: ${data.error || 'Unknown error'}`;
+        }
+      } catch (error) {
+        result.className = 'result error';
+        result.textContent = `✗ Error: ${error.message}`;
+      } finally {
+        showStatus(false);
+      }
+    }
+
+    async function executeSearch() {
+      const route = document.getElementById('searchRoute').value;
+      const query = document.getElementById('searchQuery').value;
+
+      if (!query) {
+        alert('Enter a search query');
+        return;
+      }
+
+      showStatus(true);
+      const result = document.getElementById('searchResult');
+      result.textContent = 'Searching...';
+      result.style.display = 'block';
+
+      try {
+        const response = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ route, query })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+          result.className = 'result success';
+          result.textContent = `✓ Found ${data.result.resultCount} results\n\n${JSON.stringify(data.result.results.slice(0, 5), null, 2)}${data.result.resultCount > 5 ? '\n... and more' : ''}`;
+        } else {
+          result.className = 'result error';
+          result.textContent = `✗ Error: ${data.error || 'No results'}`;
+        }
+      } catch (error) {
+        result.className = 'result error';
+        result.textContent = `✗ Error: ${error.message}`;
+      } finally {
+        showStatus(false);
+      }
+    }
+
+    async function executeAnalyze() {
+      const route = document.getElementById('analyzeRoute').value;
+      const operation = document.getElementById('analyzeOperation').value;
+      const field = document.getElementById('analyzeField').value;
+
+      if (!field) {
+        alert('Enter a field name');
+        return;
+      }
+
+      showStatus(true);
+      const result = document.getElementById('analyzeResult');
+      result.textContent = 'Analyzing...';
+      result.style.display = 'block';
+
+      try {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ route, operation, field })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+          result.className = 'result success';
+          result.textContent = `✓ Analysis complete\n\n${JSON.stringify(data.result, null, 2)}`;
+        } else {
+          result.className = 'result error';
+          result.textContent = `✗ Error: ${data.error || 'Analysis failed'}`;
+        }
+      } catch (error) {
+        result.className = 'result error';
+        result.textContent = `✗ Error: ${error.message}`;
+      } finally {
+        showStatus(false);
+      }
+    }
+
+    async function compareSnapshots() {
+      const snap1 = document.getElementById('snapshot1').value;
+      const snap2 = document.getElementById('snapshot2').value;
+
+      if (!snap1 || !snap2) {
+        alert('Select two snapshots');
+        return;
+      }
+
+      showStatus(true);
+      const result = document.getElementById('compareResult');
+      result.textContent = 'Comparing...';
+      result.style.display = 'block';
+
+      try {
+        const response = await fetch('/api/compare-snapshots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ snapshot1: snap1, snapshot2: snap2 })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+          result.className = 'result success';
+          result.textContent = `✓ Comparison complete\n\n${JSON.stringify(data.report.detailedSummary, null, 2)}`;
+        } else {
+          result.className = 'result error';
+          result.textContent = `✗ Error: ${data.error || 'Comparison failed'}`;
+        }
+      } catch (error) {
+        result.className = 'result error';
+        result.textContent = `✗ Error: ${error.message}`;
+      } finally {
+        showStatus(false);
+      }
+    }
+
+    async function loadExports() {
+      try {
+        const response = await fetch('/api/exports');
+        const data = await response.json();
+
+        const list = document.getElementById('exportsList');
+        if (data.exports.length === 0) {
+          list.innerHTML = '<li style="color: #999; padding: 20px; text-align: center;">No exports yet</li>';
+          return;
+        }
+
+        list.innerHTML = data.exports.map(file => `
+          <li class="file-item">
+            <a href="${file.path}" download>${file.name}</a>
+            <span class="file-size">${formatBytes(file.size)}</span>
+          </li>
+        `).join('');
+      } catch (error) {
+        console.error('Failed to load exports:', error);
+      }
+    }
+
+    async function loadSnapshots() {
+      try {
+        const response = await fetch('/api/snapshots');
+        const data = await response.json();
+
+        const select1 = document.getElementById('snapshot1');
+        const select2 = document.getElementById('snapshot2');
+
+        select1.innerHTML = data.snapshots.map(s => `
+          <option value="${s.fileName}">${s.timestamp}</option>
+        `).join('');
+
+        select2.innerHTML = data.snapshots.map(s => `
+          <option value="${s.fileName}">${s.timestamp}</option>
+        `).join('');
+
+        // Pre-select different snapshots
+        if (data.snapshots.length >= 2) {
+          select1.value = data.snapshots[0].fileName;
+          select2.value = data.snapshots[1].fileName;
+        }
+      } catch (error) {
+        console.error('Failed to load snapshots:', error);
+      }
+    }
+
+    async function refreshLogs() {
+      try {
+        const response = await fetch('/api/logs');
+        const data = await response.json();
+
+        const list = document.getElementById('logsList');
+        if (data.logs.length === 0) {
+          list.textContent = 'No logs yet';
+          return;
+        }
+
+        list.textContent = data.logs.map(log => {
+          const time = new Date(log.timestamp).toLocaleTimeString();
+          const level = log.level.toUpperCase();
+          return `[${time}] ${level}: ${log.event}`;
+        }).join('\n');
+      } catch (error) {
+        console.error('Failed to load logs:', error);
+      }
+    }
+
+    // ========================================================================
+    // Initialization
+    // ========================================================================
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadExports();
+      loadSnapshots();
+      refreshLogs();
+
+      // Refresh every 5 seconds
+      setInterval(loadExports, 5000);
+      setInterval(refreshLogs, 5000);
+    });
+  </script>
+</body>
+</html>
