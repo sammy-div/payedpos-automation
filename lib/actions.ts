@@ -17,10 +17,30 @@ export async function runExportAction(route: string, formats: Array<"excel" | "w
   }
 
   try {
+    // The automation host responds as soon as the run *starts* (HTTP 202),
+    // not when it finishes - a full export can take 60-100+ seconds, well
+    // beyond what a Vercel function should ever block on. The caller polls
+    // /api/status (see components/task-card.tsx) for the actual result.
     await automationClient.runExport({ route, formats });
-    return { ok: true, message: `Export started for "${route}".` };
+    return { ok: true, message: `Export started for "${route}". Watching for progress…` };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "Export failed." };
+    return { ok: false, message: error instanceof Error ? error.message : "Failed to start export." };
+  }
+}
+
+export async function runSearchAction(route: string, query: string): Promise<ActionResult> {
+  if (!isAutomationHostConfigured()) {
+    return {
+      ok: false,
+      message: "No automation host connected yet. Set AUTOMATION_API_URL to search live data.",
+    };
+  }
+
+  try {
+    await automationClient.runSearch({ route, query });
+    return { ok: true, message: `Search started on "${route}". Watching for progress…` };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Failed to start search." };
   }
 }
 

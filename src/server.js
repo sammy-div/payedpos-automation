@@ -125,55 +125,80 @@ app.get('/api/exports', (req, res) => {
 });
 
 /**
- * POST /api/export - Execute export command
+ * POST /api/export - Start an export command
+ *
+ * Responds immediately (202) once the run has started; the automation
+ * itself (navigation, pagination, extraction, report generation - which
+ * can easily take 60-100+ seconds for a large route) continues in the
+ * background. Poll GET /api/status for progress and the final result.
+ *
+ * This decoupling matters beyond convenience: a caller that instead
+ * awaited a single blocking response here (e.g. a Vercel serverless
+ * function/Server Action) would be killed by that platform's function
+ * execution time limit before a real export could ever finish.
  */
-app.post('/api/export', async (req, res) => {
+app.post('/api/export', (req, res) => {
   if (isRunning) {
     return res.status(409).json({ error: 'Export already running' });
   }
 
   const { route = 'dashboard', formats = ['excel', 'snapshot'] } = req.body;
+  const startTime = new Date().toISOString();
 
   isRunning = true;
-  lastResult = { status: 'running', startTime: new Date().toISOString() };
+  lastResult = { status: 'running', operation: 'export', route, formats, startTime };
 
-  try {
-    const command = initializeFramework();
-    const result = await command.execute({
-      action: 'read:full-export',
-      route,
-      title: `${route} Export`,
-      summary: `Live export from ${route}`,
-      formats,
-      paginate: true
-    });
+  res.status(202).json({ status: 'started', operation: 'export', route, formats, startTime });
 
-    lastResult = {
-      status: 'success',
-      result,
-      startTime: new Date().toISOString(),
-      exports: getExports()
-    };
+  (async () => {
+    try {
+      const command = initializeFramework();
+      const result = await command.execute({
+        action: 'read:full-export',
+        route,
+        title: `${route} Export`,
+        summary: `Live export from ${route}`,
+        formats,
+        paginate: true
+      });
 
-    logger.info('server.export.success', { route, formats });
-    res.json(lastResult);
-  } catch (error) {
-    logger.error('server.export.error', { message: error.message });
-    lastResult = {
-      status: 'error',
-      error: error.message,
-      startTime: new Date().toISOString()
-    };
-    res.status(500).json(lastResult);
-  } finally {
-    isRunning = false;
-  }
+      lastResult = {
+        status: 'success',
+        operation: 'export',
+        route,
+        formats,
+        result,
+        startTime,
+        finishedAt: new Date().toISOString(),
+        exports: getExports()
+      };
+
+      logger.info('server.export.success', { route, formats });
+    } catch (error) {
+      logger.error('server.export.error', { message: error.message });
+      lastResult = {
+        status: 'error',
+        operation: 'export',
+        route,
+        formats,
+        error: error.message,
+        startTime,
+        finishedAt: new Date().toISOString()
+      };
+    } finally {
+      isRunning = false;
+    }
+  })();
 });
 
 /**
- * POST /api/search - Execute search command
+ * POST /api/search - Start a search command
+ *
+ * Same fire-and-forget-with-polling pattern as /api/export, since a
+ * search still drives a real browser through navigation and (optionally
+ * paginated) extraction before it can be filtered.
  */
-app.post('/api/search', async (req, res) => {
+app.post('/api/search', (req, res) => {
   if (isRunning) {
     return res.status(409).json({ error: 'Operation already running' });
   }
@@ -184,30 +209,57 @@ app.post('/api/search', async (req, res) => {
     return res.status(400).json({ error: 'Query is required' });
   }
 
+  const startTime = new Date().toISOString();
   isRunning = true;
+  lastResult = { status: 'running', operation: 'search', route, query, startTime };
 
-  try {
-    const command = initializeFramework();
-    const result = await command.execute({
-      action: 'read:search',
-      route,
-      query
-    });
+  res.status(202).json({ status: 'started', operation: 'search', route, query, startTime });
 
-    logger.info('server.search.success', { query });
-    res.json({ status: 'success', result });
-  } catch (error) {
-    logger.error('server.search.error', { message: error.message });
-    res.status(500).json({ status: 'error', error: error.message });
-  } finally {
-    isRunning = false;
-  }
+  (async () => {
+    try {
+      const command = initializeFramework();
+      const result = await command.execute({
+        action: 'read:search',
+        route,
+        query
+      });
+
+      lastResult = {
+        status: 'success',
+        operation: 'search',
+        route,
+        query,
+        result,
+        startTime,
+        finishedAt: new Date().toISOString()
+      };
+
+      logger.info('server.search.success', { query });
+    } catch (error) {
+      logger.error('server.search.error', { message: error.message });
+      lastResult = {
+        status: 'error',
+        operation: 'search',
+        route,
+        query,
+        error: error.message,
+        startTime,
+        finishedAt: new Date().toISOString()
+      };
+    } finally {
+      isRunning = false;
+    }
+  })();
 });
 
 /**
- * POST /api/analyze - Execute analysis command
+ * POST /api/analyze - Start an analysis command
+ *
+ * Same fire-and-forget-with-polling pattern: this extracts the full
+ * (optionally paginated) table before analyzing it, so it can take just
+ * as long as a full export.
  */
-app.post('/api/analyze', async (req, res) => {
+app.post('/api/analyze', (req, res) => {
   if (isRunning) {
     return res.status(409).json({ error: 'Operation already running' });
   }
@@ -218,34 +270,59 @@ app.post('/api/analyze', async (req, res) => {
     return res.status(400).json({ error: 'Operation and field are required' });
   }
 
+  const startTime = new Date().toISOString();
   isRunning = true;
+  lastResult = { status: 'running', operation: 'analyze', route, analysisOperation: operation, field, startTime };
 
-  try {
-    const command = initializeFramework();
-    
-    // First extract the data
-    const extractResult = await command.execute({
-      action: 'read:extract-table',
-      route,
-      paginate: true
-    });
+  res.status(202).json({ status: 'started', operation: 'analyze', route, analysisOperation: operation, field, startTime });
 
-    // Then analyze it
-    const analyzeResult = await command.execute({
-      action: 'read:analyze',
-      operation,
-      field,
-      data: extractResult.rows
-    });
+  (async () => {
+    try {
+      const command = initializeFramework();
 
-    logger.info('server.analyze.success', { operation, field });
-    res.json({ status: 'success', result: analyzeResult });
-  } catch (error) {
-    logger.error('server.analyze.error', { message: error.message });
-    res.status(500).json({ status: 'error', error: error.message });
-  } finally {
-    isRunning = false;
-  }
+      // First extract the data
+      const extractResult = await command.execute({
+        action: 'read:extract-table',
+        route,
+        paginate: true
+      });
+
+      // Then analyze it
+      const analyzeResult = await command.execute({
+        action: 'read:analyze',
+        operation,
+        field,
+        data: extractResult.rows
+      });
+
+      lastResult = {
+        status: 'success',
+        operation: 'analyze',
+        route,
+        analysisOperation: operation,
+        field,
+        result: analyzeResult,
+        startTime,
+        finishedAt: new Date().toISOString()
+      };
+
+      logger.info('server.analyze.success', { operation, field });
+    } catch (error) {
+      logger.error('server.analyze.error', { message: error.message });
+      lastResult = {
+        status: 'error',
+        operation: 'analyze',
+        route,
+        analysisOperation: operation,
+        field,
+        error: error.message,
+        startTime,
+        finishedAt: new Date().toISOString()
+      };
+    } finally {
+      isRunning = false;
+    }
+  })();
 });
 
 /**

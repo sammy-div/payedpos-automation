@@ -96,6 +96,20 @@ export interface EnvironmentConfig {
   credentialsConfigured: boolean;
 }
 
+export interface AutomationStatusPayload {
+  running: boolean;
+  lastResult: {
+    status: "running" | "success" | "error";
+    operation?: "export" | "search" | "analyze";
+    route?: string;
+    startTime: string;
+    finishedAt?: string;
+    error?: string;
+    result?: unknown;
+  } | null;
+  config: { baseUrl: string; headless: boolean };
+}
+
 /** True when this data came from a live automation host rather than mock/demo data. */
 export interface DataEnvelope<T> {
   data: T;

@@ -45,12 +45,24 @@ export const automationClient = {
   getSnapshots: () => request<{ snapshots: Array<Record<string, unknown>> }>("/api/snapshots"),
   getExports: () => request<{ exports: Array<Record<string, unknown>> }>("/api/exports"),
   getLogs: () => request<{ logs: Array<Record<string, unknown>> }>("/api/logs"),
+  // These three start a run and return immediately (HTTP 202) - the
+  // automation server runs the actual (potentially 60-100+ second)
+  // Playwright job in the background. Poll getStatus() for the result.
   runExport: (body: { route: string; formats: Array<"excel" | "word" | "snapshot"> }) =>
-    request("/api/export", { method: "POST", body: JSON.stringify(body) }),
+    request<{ status: "started"; operation: "export"; route: string; startTime: string }>(
+      "/api/export",
+      { method: "POST", body: JSON.stringify(body) }
+    ),
   runSearch: (body: { route: string; query: string }) =>
-    request("/api/search", { method: "POST", body: JSON.stringify(body) }),
+    request<{ status: "started"; operation: "search"; route: string; startTime: string }>(
+      "/api/search",
+      { method: "POST", body: JSON.stringify(body) }
+    ),
   runAnalyze: (body: { route: string; operation: string; field: string }) =>
-    request("/api/analyze", { method: "POST", body: JSON.stringify(body) }),
+    request<{ status: "started"; operation: "analyze"; route: string; startTime: string }>(
+      "/api/analyze",
+      { method: "POST", body: JSON.stringify(body) }
+    ),
   compareSnapshots: (body: { snapshot1: string; snapshot2: string }) =>
     request("/api/compare-snapshots", { method: "POST", body: JSON.stringify(body) }),
 };
