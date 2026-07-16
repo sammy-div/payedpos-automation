@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     // The Playwright automation backend is a separate CommonJS Node
     // codebase (not part of the Next.js app) and isn't linted here.
     "src/**",
+    "tests/**",
   ]),
 ]);
 
