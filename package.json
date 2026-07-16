@@ -17,19 +17,23 @@
     "export:merchants": "node src/scripts/export-merchants.js",
     "setup:playwright": "playwright install chromium"
   },
+  "overrides": {
+    "uuid": "^11.1.1",
+    "postcss": "^8.5.10"
+  },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
     "docx": "^9.0.0",
     "dotenv": "^16.4.0",
+    "exceljs": "^4.4.0",
     "express": "^4.18.2",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
     "playwright": "^1.49.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "xlsx": "^0.18.1"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

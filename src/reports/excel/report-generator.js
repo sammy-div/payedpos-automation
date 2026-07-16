@@ -1,32 +1,39 @@
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
+const { getConfig } = require('../../config/env');
 const { getOutputPath, getTimestampedFileName } = require('../../utils/file');
 const logger = require('../../utils/logger');
 const { AutomationError } = require('../../utils/errors');
 
 class ExcelReportGenerator {
-  generate({ title, summary, rows, observations = [] }) {
+  async generate({ title, summary, rows, observations = [] }) {
     try {
-      const workbook = xlsx.utils.book_new();
-      const sheet = xlsx.utils.aoa_to_sheet([
-        [title],
-        [],
-        ['Generated At', new Date().toISOString()],
-        ['Summary', summary],
-        ['Total Records', rows.length],
-        [],
-        ...(rows.length ? [Object.keys(rows[0])] : [['No data available']])
-      ]);
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Report');
+
+      sheet.addRow([title]);
+      sheet.addRow([]);
+      sheet.addRow(['Generated At', new Date().toISOString()]);
+      sheet.addRow(['Summary', summary]);
+      sheet.addRow(['Total Records', rows.length]);
+      sheet.addRow([]);
 
       if (rows.length) {
+        sheet.addRow(Object.keys(rows[0]));
         rows.forEach((row) => {
-          const values = Object.keys(row).map((key) => row[key] ?? '');
-          xlsx.utils.sheet_add_aoa(sheet, [values], { origin: -1 });
+          sheet.addRow(Object.keys(row).map((key) => row[key] ?? ''));
         });
+      } else {
+        sheet.addRow(['No data available']);
       }
 
-      xlsx.utils.book_append_sheet(workbook, sheet, 'Report');
-      const outputPath = getOutputPath(getTimestampedFileName('report', 'xlsx'));
-      xlsx.writeFile(workbook, outputPath);
+      if (observations.length) {
+        sheet.addRow([]);
+        sheet.addRow(['Observations']);
+        observations.forEach((observation) => sheet.addRow([observation]));
+      }
+
+      const outputPath = getOutputPath(getTimestampedFileName('report', 'xlsx'), getConfig().outputDir);
+      await workbook.xlsx.writeFile(outputPath);
       logger.info('report.excel', { outputPath, totalRows: rows.length });
       return outputPath;
     } catch (error) {

@@ -1,5 +1,6 @@
 const { Document, Packer, Paragraph, TextRun, Table, TableCell, TableRow, BorderStyle, UnderlineType } = require('docx');
 const fs = require('fs');
+const { getConfig } = require('../../config/env');
 const { getOutputPath, getTimestampedFileName } = require('../../utils/file');
 const logger = require('../../utils/logger');
 const { AutomationError } = require('../../utils/errors');
@@ -154,7 +155,7 @@ class WordReportGenerator {
       }
 
       const doc = new Document({ sections: [{ properties: {}, children }] });
-      const outputPath = getOutputPath(getTimestampedFileName('report', 'docx'));
+      const outputPath = getOutputPath(getTimestampedFileName('report', 'docx'), getConfig().outputDir);
       const buffer = await Packer.toBuffer(doc);
       fs.writeFileSync(outputPath, buffer);
 

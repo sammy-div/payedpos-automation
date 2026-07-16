@@ -309,7 +309,7 @@ class GenericCommand {
       throw new AutomationError('Excel export requires data array');
     }
 
-    const excelPath = this.excelReportGenerator.generate({
+    const excelPath = await this.excelReportGenerator.generate({
       title,
       summary,
       rows: dataToExport
@@ -471,7 +471,7 @@ class GenericCommand {
       // Export in requested formats
       if (formats.includes('excel') && this.excelReportGenerator) {
         results.excel = {
-          path: this.excelReportGenerator.generate({ title, summary, rows }),
+          path: await this.excelReportGenerator.generate({ title, summary, rows }),
           format: 'xlsx'
         };
       }
