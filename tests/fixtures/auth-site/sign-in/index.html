@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <div id="__next">
+      <main>
+        <div class="h-screen w-full">
+          <div class="flex flex-col items-center mt-0 bg-transparent">
+            <div class="bg-white shadow-lg border rounded-2xl w-full mt-6 p-2">
+              <div class="p-4">
+                <p class="text-2xl font-bold mt-8">Sign In</p>
+                <form class="flex flex-col items-start justify-start w-full space-y-8 px-1">
+                  <div class="flex flex-col gap-6 items-start justify-start w-full">
+                    <div class="space-y-2 flex-col items-center justify-start text-start w-full gap-2">
+                      <label for=":R6l8m:-form-item">Email</label>
+                      <input id="email" placeholder="eg. john@mail.com" name="email" aria-invalid="false" value="" />
+                    </div>
+                    <div class="space-y-2 flex-col w-full gap-2">
+                      <label for=":Ral8m:-form-item">Password</label>
+                      <input type="password" id="password" placeholder="(8+ characters)" name="password" aria-invalid="false" value="" />
+                    </div>
+                    <div class="flex flex-col justify-center items-center gap-4 w-full">
+                      <button type="submit">Sign-in</button>
+                      <p class="text-base font-medium">
+                        Forgot your password?
+                        <a href="/reset-password">Reset it</a>
+                      </p>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <!-- Sonner-style toast region, matching the real page's aria-label exactly -->
+      <div role="region" aria-label="Notifications (F8)" tabindex="-1" style="pointer-events:none">
+        <ol id="toast-list" tabindex="-1"></ol>
+      </div>
+    </div>
+
+    <!--
+      TEST-ONLY submit handler. The real site's actual auth logic lives in
+      a bundled Next.js chunk that calls a real backend - this stands in
+      for it purely to exercise Playwright's interaction with the DOM
+      (fill/click/wait-for-outcome), not to replicate PayedPOS's backend.
+    -->
+    <script>
+      document.querySelector('form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = document.getElementById('email').value;
+        var password = document.getElementById('password').value;
+        setTimeout(function () {
+          if (email === 'valid@example.com' && password === 'correct-password') {
+            window.location.href = '/dashboard';
+          } else {
+            var li = document.createElement('li');
+            li.textContent = 'Invalid email or password';
+            document.getElementById('toast-list').appendChild(li);
+          }
+        }, 200);
+      });
+    </script>
+  </body>
+</html>

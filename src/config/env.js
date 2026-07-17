@@ -32,6 +32,7 @@ function parseViewport(value) {
 function getConfig() {
   return {
     baseUrl: process.env.PAYEDPOS_BASE_URL || 'https://payedpos.vercel.app',
+    loginPath: process.env.PAYEDPOS_LOGIN_PATH || '/sign-in',
     username: process.env.PAYEDPOS_USERNAME || '',
     password: process.env.PAYEDPOS_PASSWORD || '',
     headless: parseBoolean(process.env.PAYEDPOS_HEADLESS, true),
