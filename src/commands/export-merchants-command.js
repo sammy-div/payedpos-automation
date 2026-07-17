@@ -19,7 +19,7 @@ class ExportMerchantsCommand extends BaseCommand {
       });
 
       const snapshotPath = this.snapshotManager.save({ route: 'merchants', title, summary, rows, generatedAt: new Date().toISOString() });
-      const excelPath = this.excelReportGenerator.generate({ title, summary, rows });
+      const excelPath = await this.excelReportGenerator.generate({ title, summary, rows });
       const wordPath = await this.wordReportGenerator.generate({ title, summary, rows, observations: [`Total merchants exported: ${rows.length}`] });
 
       logger.info('command.export-merchants.complete', { excelPath, wordPath, snapshotPath });

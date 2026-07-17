@@ -9,6 +9,8 @@ import type {
   SnapshotFile,
 } from "./types";
 
+// Routes below match src/browser/navigation/router.js exactly - these are
+// the only routes actually confirmed against the real PayedPOS site.
 export const mockTasks: AutomationTask[] = [
   {
     id: "dashboard-export",
@@ -20,25 +22,25 @@ export const mockTasks: AutomationTask[] = [
   },
   {
     id: "terminals-export",
-    route: "pos-terminals",
-    label: "POS terminals export",
-    description: "Extract every accessible terminal record, paginated automatically.",
+    route: "pos-terminals-assigned",
+    label: "Assigned POS terminals export",
+    description: "Extract every assigned terminal record, paginated automatically.",
     action: "read:full-export",
     defaultFormats: ["excel", "word", "snapshot"],
   },
   {
-    id: "merchants-export",
-    route: "merchants",
-    label: "Merchants export",
-    description: "Extract merchant records with applied filters, if any.",
+    id: "transactions-export",
+    route: "transactions",
+    label: "Transactions export",
+    description: "Extract transaction records with applied filters, if any.",
     action: "read:full-export",
     defaultFormats: ["excel", "snapshot"],
   },
   {
-    id: "unassigned-search",
-    route: "unassigned",
-    label: "Search unassigned terminals",
-    description: "Search the unassigned queue by any auto-detected field.",
+    id: "locations-search",
+    route: "locations",
+    label: "Search locations",
+    description: "Search the locations list by any auto-detected field.",
     action: "read:search",
   },
 ];
@@ -47,8 +49,8 @@ export const mockRuns: AutomationRun[] = [
   {
     id: "run-1042",
     taskId: "terminals-export",
-    taskLabel: "POS terminals export",
-    route: "pos-terminals",
+    taskLabel: "Assigned POS terminals export",
+    route: "pos-terminals-assigned",
     status: "success",
     startedAt: "2026-07-15T08:12:04.000Z",
     finishedAt: "2026-07-15T08:13:41.000Z",
@@ -72,9 +74,9 @@ export const mockRuns: AutomationRun[] = [
   },
   {
     id: "run-1040",
-    taskId: "merchants-export",
-    taskLabel: "Merchants export",
-    route: "merchants",
+    taskId: "transactions-export",
+    taskLabel: "Transactions export",
+    route: "transactions",
     status: "error",
     startedAt: "2026-07-14T22:40:00.000Z",
     finishedAt: "2026-07-14T22:40:18.000Z",
@@ -85,9 +87,9 @@ export const mockRuns: AutomationRun[] = [
   },
   {
     id: "run-1039",
-    taskId: "unassigned-search",
-    taskLabel: "Search unassigned terminals",
-    route: "unassigned",
+    taskId: "locations-search",
+    taskLabel: "Search locations",
+    route: "locations",
     status: "success",
     startedAt: "2026-07-14T19:17:24.000Z",
     finishedAt: "2026-07-14T19:17:52.000Z",
@@ -102,8 +104,8 @@ export const mockReports: ReportFile[] = [
   {
     name: "report-2026-07-15T08-13-41-000Z.xlsx",
     format: "xlsx",
-    route: "pos-terminals",
-    title: "POS Terminals Export",
+    route: "pos-terminals-assigned",
+    title: "Assigned POS Terminals Export",
     sizeBytes: 184_320,
     generatedAt: "2026-07-15T08:13:41.000Z",
     downloadPath: "/download/export/report-2026-07-15T08-13-41-000Z.xlsx",
@@ -129,8 +131,8 @@ export const mockReports: ReportFile[] = [
   {
     name: "report-2026-07-14T19-17-52-000Z.xlsx",
     format: "xlsx",
-    route: "unassigned",
-    title: "Unassigned Terminals Search",
+    route: "locations",
+    title: "Locations Search",
     sizeBytes: 22_050,
     generatedAt: "2026-07-14T19:17:52.000Z",
     downloadPath: "/download/export/report-2026-07-14T19-17-52-000Z.xlsx",
@@ -140,7 +142,7 @@ export const mockReports: ReportFile[] = [
 export const mockSnapshots: SnapshotFile[] = [
   {
     fileName: "snapshot-2026-07-15T08-13-41-000Z.json",
-    route: "pos-terminals",
+    route: "pos-terminals-assigned",
     savedAt: "2026-07-15T08:13:41.000Z",
     sizeBytes: 412_004,
     recordCount: 1284,
@@ -148,7 +150,7 @@ export const mockSnapshots: SnapshotFile[] = [
   },
   {
     fileName: "snapshot-2026-07-14T08-09-12-000Z.json",
-    route: "pos-terminals",
+    route: "pos-terminals-assigned",
     savedAt: "2026-07-14T08:09:12.000Z",
     sizeBytes: 405_812,
     recordCount: 1266,
@@ -168,10 +170,10 @@ export const mockComparison: SnapshotComparisonResult = {
   keyField: "Terminal ID",
   totals: { before: 1266, after: 1284, added: 21, removed: 3, modified: 8, unchanged: 1255 },
   added: [
-    { "Terminal ID": "TID-88291", Status: "Active", Merchant: "Coral Coffee Co." },
-    { "Terminal ID": "TID-88292", Status: "Active", Merchant: "Coral Coffee Co." },
+    { "Terminal ID": "TID-88291", Status: "Active", Location: "Coral Coffee Co." },
+    { "Terminal ID": "TID-88292", Status: "Active", Location: "Coral Coffee Co." },
   ],
-  removed: [{ "Terminal ID": "TID-77410", Status: "Retired", Merchant: "Northgate Deli" }],
+  removed: [{ "Terminal ID": "TID-77410", Status: "Retired", Location: "Northgate Deli" }],
   modified: [
     {
       key: "TID-45021",
@@ -179,13 +181,13 @@ export const mockComparison: SnapshotComparisonResult = {
     },
     {
       key: "TID-45188",
-      changedFields: [{ field: "Merchant", before: "Blue Wave Retail", after: "Blue Wave Retail Group" }],
+      changedFields: [{ field: "Location", before: "Blue Wave Retail", after: "Blue Wave Retail Group" }],
     },
   ],
 };
 
 export const mockLogs: LogEntry[] = [
-  { timestamp: "2026-07-15T08:13:41.000Z", level: "info", event: "server.export.success", message: "route=pos-terminals formats=excel,snapshot" },
+  { timestamp: "2026-07-15T08:13:41.000Z", level: "info", event: "server.export.success", message: "route=pos-terminals-assigned formats=excel,snapshot" },
   { timestamp: "2026-07-15T08:13:40.500Z", level: "info", event: "report.excel", message: "outputPath=/output/report-2026-07-15T08-13-41-000Z.xlsx totalRows=1284" },
   { timestamp: "2026-07-15T08:12:41.100Z", level: "info", event: "pagination.complete", message: "totalRows=1284" },
   { timestamp: "2026-07-15T08:12:05.200Z", level: "info", event: "security.action.allowed", message: 'actionName="read:full-export"' },

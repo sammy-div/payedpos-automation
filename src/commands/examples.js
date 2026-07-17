@@ -9,6 +9,15 @@
  * - parameters specific to the action
  * 
  * No need to modify source code - just create new command definitions!
+ *
+ * NOTE ON ROUTES: only dashboard, pos-terminals-assigned, transactions,
+ * and locations are confirmed real routes (see
+ * src/browser/navigation/router.js). A 'merchants' route was previously
+ * assumed here but was never actually confirmed against the real site;
+ * examples that used it now point at 'transactions' instead so they at
+ * least target a real, confirmed page - but variable/comment names below
+ * still say "merchant" since that was each example's original intent.
+ * Retarget these once the real merchant-data route (if any) is confirmed.
  */
 
 // Export all records from a specific page to Excel
@@ -24,7 +33,7 @@ const exportDashboardToExcel = {
 // Extract table data without pagination
 const extractCurrentPage = {
   action: 'read:extract-table',
-  route: 'pos-terminals',
+  route: 'pos-terminals-assigned',
   selector: 'table',
   paginate: false
 };
@@ -32,7 +41,7 @@ const extractCurrentPage = {
 // Extract with pagination and generate snapshot
 const extractWithSnapshot = {
   action: 'read:full-export',
-  route: 'merchants',
+  route: 'transactions',
   title: 'Merchants Export',
   summary: 'All merchant records',
   formats: ['snapshot'],
@@ -42,7 +51,7 @@ const extractWithSnapshot = {
 // Search for specific merchant
 const searchMerchant = {
   action: 'read:search',
-  route: 'merchants',
+  route: 'transactions',
   query: 'Example Merchant',
   fieldLabel: 'Merchant Name'
 };
@@ -50,7 +59,7 @@ const searchMerchant = {
 // Analyze extracted data
 const analyzeTerminals = {
   action: 'read:analyze',
-  route: 'pos-terminals',
+  route: 'pos-terminals-assigned',
   operation: 'countBy',
   field: 'Status'
 };
@@ -73,7 +82,7 @@ const generateDetailedReport = {
 // Get top terminals by activity
 const getTopTerminals = {
   action: 'read:analyze',
-  route: 'pos-terminals',
+  route: 'pos-terminals-assigned',
   operation: 'topN',
   field: 'Activity Count',
   topN: 10
@@ -104,7 +113,7 @@ const extractDetailPage = {
 // Group merchants by status
 const groupByStatus = {
   action: 'read:analyze',
-  route: 'merchants',
+  route: 'transactions',
   operation: 'groupBy',
   field: 'Status'
 };
@@ -112,7 +121,7 @@ const groupByStatus = {
 // Sort terminals by name
 const sortTerminals = {
   action: 'read:analyze',
-  route: 'pos-terminals',
+  route: 'pos-terminals-assigned',
   operation: 'sort',
   field: 'Terminal Name'
 };

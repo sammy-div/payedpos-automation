@@ -22,7 +22,7 @@ class ExportDashboardCommand extends BaseCommand {
       );
 
       const snapshotPath = this.snapshotManager.save({ route, title, summary, rows, generatedAt: new Date().toISOString() });
-      const excelPath = this.excelReportGenerator.generate({ title, summary, rows });
+      const excelPath = await this.excelReportGenerator.generate({ title, summary, rows });
       const wordPath = await this.wordReportGenerator.generate({ title, summary, rows, observations: [`Snapshot saved to ${snapshotPath}`] });
 
       logger.info('command.complete', { route, excelPath, wordPath, snapshotPath });

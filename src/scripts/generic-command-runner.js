@@ -75,9 +75,12 @@ async function exampleSearchAndExtract() {
   console.log('\n=== Example 2: Search and Extract ===');
 
   const command = initializeFramework();
+  // 'merchants' hasn't been confirmed as a real route (see
+  // src/browser/navigation/router.js) - using a confirmed one here so
+  // this example actually runs.
   const commandDef = {
     action: 'read:search',
-    route: 'merchants',
+    route: 'transactions',
     query: 'cafe',
     fieldLabel: 'Merchant Name'
   };
@@ -101,7 +104,7 @@ async function exampleAnalyzeData() {
   // First extract the data
   const extractDef = {
     action: 'read:extract-table',
-    route: 'pos-terminals',
+    route: 'pos-terminals-assigned',
     selector: 'table',
     paginate: true
   };

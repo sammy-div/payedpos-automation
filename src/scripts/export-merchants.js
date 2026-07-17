@@ -22,7 +22,13 @@ async function main() {
   });
 
   logger.info('script.export-merchants.start', {});
-  const result = await command.execute({ route: 'merchants' });
+  // NOTE: ExportMerchantsCommand navigates to a 'merchants' route that has
+  // not been confirmed to exist on the real site (unlike dashboard,
+  // pos-terminals-assigned, transactions, and locations - see
+  // src/browser/navigation/router.js). This will throw "Unknown route:
+  // merchants" until that's verified and added to ROUTES, or this script
+  // is retargeted at whichever real route actually holds merchant data.
+  const result = await command.execute();
   logger.info('script.export-merchants.complete', result);
 }
 

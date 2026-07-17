@@ -22,7 +22,7 @@ async function main() {
   });
 
   logger.info('script.export-terminals.start', {});
-  const result = await command.execute({ route: 'pos-terminals' });
+  const result = await command.execute();
   logger.info('script.export-terminals.complete', result);
 }
 

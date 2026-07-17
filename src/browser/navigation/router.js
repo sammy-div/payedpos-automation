@@ -2,12 +2,16 @@ const { getConfig } = require('../../config/env');
 const logger = require('../../utils/logger');
 const { AutomationError } = require('../../utils/errors');
 
+// Confirmed directly against the real site (this sandbox can't reach it
+// itself - see project history). Only routes the user has actually
+// verified are listed here; nothing is guessed. Add more as they're
+// confirmed, or see the discoverRoutes() note below for a longer-term,
+// non-hardcoded alternative.
 const ROUTES = {
-  dashboard: '/',
-  'pos-terminals': '/pos-terminals',
-  assigned: '/assigned',
-  unassigned: '/unassigned',
-  merchants: '/merchants'
+  dashboard: '/dashboard',
+  'pos-terminals-assigned': '/dashboard/pos-terminals/assigned',
+  transactions: '/dashboard/transactions',
+  locations: '/dashboard/locations'
 };
 
 class NavigationRouter {
