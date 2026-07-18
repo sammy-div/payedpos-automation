@@ -8,17 +8,20 @@ A production-ready, modular automation platform for the PayedPOS dashboard that 
 
 `app/`, `components/`, and `lib/` at the repo root are a Next.js (App Router + TypeScript) operations dashboard: Dashboard, Automations, Reports, Snapshots, Logs, Configuration, and Health pages.
 
-It's deliberately decoupled from the Playwright automation below:
+It's deliberately decoupled from the Playwright automation:
 
 - **This Next.js app** — the UI. Deploys to Vercel. Renders every page dynamically (no stale build-time data) so it always reflects live state once connected.
-- **`src/server.js`** — the actual automation (unchanged, see architecture below). Vercel functions aren't built to run a persistent headless browser, so this keeps running on an always-on host (Railway, Fly.io, a VPS, Docker, etc.).
+- **The actual automation** — Playwright never runs on Vercel itself (serverless functions aren't built for a persistent headless browser). Two ways to run it, in priority order:
+  1. **GitHub Actions** (primary) — a workflow that runs on demand or on a schedule, triggered from the dashboard's "Run" button or the GitHub REST API, storing results in Supabase. See **[docs/github-actions-automation.md](docs/github-actions-automation.md)** for the full architecture, required secrets, deployment steps, and troubleshooting.
+  2. **`src/server.js`** (fallback) — the original always-on Express server, for anyone who'd rather run a persistent host (Railway, Fly.io, a VPS, Docker) instead of GitHub Actions. Set `AUTOMATION_API_URL` (see `.env.example`) to point the dashboard at one.
 
-Set `AUTOMATION_API_URL` (see `.env.example`) to point the dashboard at a deployed `src/server.js` instance. Until then, every page runs on realistic demo data (clearly marked with a "DEMO DATA" badge) so the UI is fully explorable with zero setup.
+With neither configured, every page runs on realistic demo data (clearly marked with a "DEMO DATA" badge) so the UI is fully explorable with zero setup.
 
 ```bash
 npm install
 npm run dev              # Next.js dashboard, http://localhost:3000
-npm run automation:server        # Playwright automation API, separately
+npx tsx automation/index.ts      # Run the automation locally (see docs/github-actions-automation.md)
+npm run automation:server        # Or: the always-on server, separately
 ```
 
 ## Overview

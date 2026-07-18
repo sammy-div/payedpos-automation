@@ -1,6 +1,7 @@
 "use server";
 
 import { automationClient, isAutomationHostConfigured } from "@/lib/automation-client";
+import { dispatchWorkflow, hasActiveRun, isGithubActionsConfigured } from "@/lib/github-actions-client";
 
 export interface ActionResult {
   ok: boolean;
@@ -8,11 +9,27 @@ export interface ActionResult {
 }
 
 export async function runExportAction(route: string, formats: Array<"excel" | "word" | "snapshot">): Promise<ActionResult> {
+  // GitHub Actions is the primary path going forward - see
+  // .github/workflows/automation.yml. The always-on-host path
+  // (AUTOMATION_API_URL) remains as a fallback for anyone still running
+  // src/server.js directly instead.
+  if (isGithubActionsConfigured()) {
+    try {
+      if (await hasActiveRun()) {
+        return { ok: false, message: "A run is already in progress. Try again once it finishes." };
+      }
+      await dispatchWorkflow({ route, triggeredBy: "manual" });
+      return { ok: true, message: `Workflow started for "${route}". Check back shortly for results.` };
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : "Failed to start the workflow." };
+    }
+  }
+
   if (!isAutomationHostConfigured()) {
     return {
       ok: false,
       message:
-        "No automation host connected yet. Set AUTOMATION_API_URL to your deployed Playwright server to run this for real.",
+        "No automation host connected yet. Configure GitHub Actions (see .github/workflows/automation.yml) or set AUTOMATION_API_URL to a deployed Playwright server.",
     };
   }
 

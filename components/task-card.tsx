@@ -24,12 +24,12 @@ function useStatusPolling() {
 
   useEffect(() => stop, []);
 
-  const startPolling = () => {
+  const startPolling = (route: string) => {
     stop();
     setPhase("running");
     intervalRef.current = setInterval(async () => {
       try {
-        const res = await fetch("/api/status", { cache: "no-store" });
+        const res = await fetch(`/api/status?route=${encodeURIComponent(route)}`, { cache: "no-store" });
         const status: AutomationStatusPayload & { hostConfigured?: boolean } = await res.json();
 
         if (!status.lastResult || status.running) {
@@ -77,7 +77,7 @@ export function TaskCard({ task }: { task: AutomationTask }) {
       }
 
       setMessage(outcome.message);
-      startPolling();
+      startPolling(task.route);
     });
   };
 

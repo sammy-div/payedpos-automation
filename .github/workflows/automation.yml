@@ -1,0 +1,117 @@
+name: PayedPOS Automation
+
+# workflow_dispatch is the single trigger that serves both "manual
+# execution" and "API-triggered execution" - the GitHub REST API's
+# POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches
+# endpoint fires this exact same event, just invoked programmatically
+# instead of via the "Run workflow" button in the GitHub UI. No separate
+# trigger type is needed for the two to both work.
+on:
+  workflow_dispatch:
+    inputs:
+      route:
+        description: 'Which route to scrape'
+        required: true
+        default: 'transactions'
+        type: choice
+        options:
+          - dashboard
+          - pos-terminals-assigned
+          - transactions
+          - locations
+      triggered_by:
+        description: 'How this run was triggered (for logging/observability only)'
+        required: false
+        default: 'manual'
+        type: choice
+        options:
+          - manual
+          - api
+          - schedule
+
+  # Disabled by default. To run automatically ~3x/day, uncomment this and
+  # pick a route below (schedule triggers can't supply workflow_dispatch
+  # inputs, so the route has to be fixed here instead - run three separate
+  # scheduled jobs, one per cron line, if more than one route needs to run
+  # on a schedule).
+  # schedule:
+  #   - cron: '0 6,14,22 * * *' # 06:00, 14:00, 22:00 UTC
+
+# Prevents two runs from racing for the same cached session / hitting the
+# real site simultaneously. A new run queues behind an in-progress one
+# rather than cancelling it, since cancelling mid-scrape wastes the work
+# already done.
+concurrency:
+  group: payedpos-automation
+  cancel-in-progress: false
+
+jobs:
+  automation:
+    runs-on: ubuntu-latest
+    # Generous relative to measured real run times (a full paginated
+    # export completed in low seconds to low minutes during testing), but
+    # still well below GitHub's own 6-hour job cap - catches a genuinely
+    # hung run without needing a hair-trigger limit.
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # GitHub Actions cache entries are immutable per key - you can't
+      # overwrite one. The standard pattern for a cache that needs to
+      # refresh every run is: save under a key unique to this run, but
+      # restore using a stable prefix match (restore-keys) so the most
+      # recently saved entry is picked up regardless of which run created
+      # it. Unused cache entries are evicted by GitHub automatically, so
+      # there's no cleanup to do here for entries this accumulates.
+      - name: Restore cached session
+        uses: actions/cache/restore@v4
+        with:
+          path: storage/auth-state.json
+          key: auth-state-${{ github.run_id }}
+          restore-keys: |
+            auth-state-
+
+      - name: Run automation
+        env:
+          PAYEDPOS_BASE_URL: ${{ secrets.PAYEDPOS_BASE_URL }}
+          PAYEDPOS_LOGIN_PATH: ${{ secrets.PAYEDPOS_LOGIN_PATH || '/sign-in' }}
+          PAYEDPOS_USERNAME: ${{ secrets.PAYEDPOS_USERNAME }}
+          PAYEDPOS_PASSWORD: ${{ secrets.PAYEDPOS_PASSWORD }}
+          AUTOMATION_ROUTE: ${{ inputs.route }}
+          AUTOMATION_TRIGGERED_BY: ${{ inputs.triggered_by }}
+          INGEST_API_URL: ${{ secrets.INGEST_API_URL }}
+          INGEST_API_SECRET: ${{ secrets.INGEST_API_SECRET }}
+        run: npx tsx automation/index.ts
+
+      # Runs even if the automation step failed above, so a session
+      # obtained partway through (or refreshed via re-authentication) is
+      # still captured for next time.
+      - name: Save session for next run
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: storage/auth-state.json
+          key: auth-state-${{ github.run_id }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-logs-${{ github.run_id }}
+          path: logs/
+          retention-days: 14
+          if-no-files-found: ignore

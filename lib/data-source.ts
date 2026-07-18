@@ -1,4 +1,5 @@
 import { automationClient, isAutomationHostConfigured } from "./automation-client";
+import { getSupabaseClient, isSupabaseConfigured } from "./supabase";
 import {
   mockComparison,
   mockConfig,
@@ -25,13 +26,65 @@ function envelope<T>(data: T, source: "live" | "mock"): DataEnvelope<T> {
   return { data, source };
 }
 
+interface AutomationRunRow {
+  id: string;
+  route: string;
+  status: "running" | "success" | "error";
+  triggered_by: string;
+  record_count: number | null;
+  error_message: string | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
+function mapRunRow(row: AutomationRunRow): AutomationRun {
+  const startedMs = new Date(row.started_at).getTime();
+  const finishedMs = row.finished_at ? new Date(row.finished_at).getTime() : null;
+
+  return {
+    id: row.id,
+    taskId: row.route,
+    taskLabel: row.route,
+    route: row.route,
+    status: row.status,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    durationMs: finishedMs !== null ? finishedMs - startedMs : null,
+    recordCount: row.record_count,
+    formats: [],
+    errorMessage: row.error_message,
+  };
+}
+
 export async function getTasks(): Promise<DataEnvelope<AutomationTask[]>> {
-  // Task definitions live in the codebase (commands/examples.js), not the
-  // live host, so this is always the same list regardless of connection.
-  return envelope(mockTasks, isAutomationHostConfigured() ? "live" : "mock");
+  // Task definitions live in the codebase (src/commands/examples.js /
+  // .github/workflows/automation.yml's route choices), not the data
+  // store, so this is always the same list regardless of connection.
+  return envelope(mockTasks, isSupabaseConfigured() || isAutomationHostConfigured() ? "live" : "mock");
 }
 
 export async function getRecentRuns(): Promise<DataEnvelope<AutomationRun[]>> {
+  // Supabase (populated by the GitHub Actions workflow's ingest calls) is
+  // the primary source now - checked first. AUTOMATION_API_URL (the
+  // older always-on server model) is a fallback for anyone still running
+  // src/server.js directly instead of GitHub Actions.
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from("automation_runs")
+        .select("id, route, status, triggered_by, record_count, error_message, started_at, finished_at")
+        .order("started_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      return envelope((data as AutomationRunRow[]).map(mapRunRow), "live");
+    } catch {
+      return envelope(mockRuns, "mock");
+    }
+  }
+
   if (!isAutomationHostConfigured()) {
     return envelope(mockRuns, "mock");
   }
@@ -65,6 +118,17 @@ export async function getRecentRuns(): Promise<DataEnvelope<AutomationRun[]>> {
     return envelope(mockRuns, "mock");
   }
 }
+
+// NOTE: getReports() and getSnapshots() below still only read from the
+// older AUTOMATION_API_URL / always-on-host model (src/server.js writing
+// .xlsx/.docx files to local disk). They haven't been migrated to the
+// GitHub Actions + Supabase architecture - that would mean generating
+// reports on demand from the rows Supabase now stores (see
+// automation_runs / extracted_records in supabase/schema.sql) rather
+// than reading pre-generated files, which is a real, separate follow-up
+// rather than something quietly left half-working. Until then, these two
+// only show live data for anyone still running src/server.js directly;
+// otherwise they fall back to mock data even if Supabase is configured.
 
 export async function getReports(): Promise<DataEnvelope<ReportFile[]>> {
   if (!isAutomationHostConfigured()) {
