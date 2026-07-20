@@ -38,6 +38,7 @@ export interface ReportFile {
 }
 
 export interface SnapshotFile {
+  runId: string;
   fileName: string;
   route: string;
   savedAt: string;

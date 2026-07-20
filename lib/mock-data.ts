@@ -141,6 +141,7 @@ export const mockReports: ReportFile[] = [
 
 export const mockSnapshots: SnapshotFile[] = [
   {
+    runId: "mock-run-1042",
     fileName: "snapshot-2026-07-15T08-13-41-000Z.json",
     route: "pos-terminals-assigned",
     savedAt: "2026-07-15T08:13:41.000Z",
@@ -149,6 +150,7 @@ export const mockSnapshots: SnapshotFile[] = [
     downloadPath: "/download/snapshot/snapshot-2026-07-15T08-13-41-000Z.json",
   },
   {
+    runId: "mock-run-1038",
     fileName: "snapshot-2026-07-14T08-09-12-000Z.json",
     route: "pos-terminals-assigned",
     savedAt: "2026-07-14T08:09:12.000Z",
@@ -157,6 +159,7 @@ export const mockSnapshots: SnapshotFile[] = [
     downloadPath: "/download/snapshot/snapshot-2026-07-14T08-09-12-000Z.json",
   },
   {
+    runId: "mock-run-1041",
     fileName: "snapshot-2026-07-15T06-01-02-000Z.json",
     route: "dashboard",
     savedAt: "2026-07-15T06:01:02.000Z",

@@ -2,6 +2,8 @@
 
 import { automationClient, isAutomationHostConfigured } from "@/lib/automation-client";
 import { dispatchWorkflow, hasActiveRun, isGithubActionsConfigured } from "@/lib/github-actions-client";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import type { SnapshotComparisonResult } from "@/lib/types";
 
 export interface ActionResult {
   ok: boolean;
@@ -61,7 +63,37 @@ export async function runSearchAction(route: string, query: string): Promise<Act
   }
 }
 
-export async function compareSnapshotsAction(snapshot1: string, snapshot2: string): Promise<ActionResult> {
+export interface CompareResult extends ActionResult {
+  comparison?: SnapshotComparisonResult;
+}
+
+export async function compareSnapshotsAction(runId1: string, runId2: string): Promise<CompareResult> {
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = getSupabaseClient();
+
+      const [before, after] = await Promise.all([
+        supabase.from("extracted_records").select("data").eq("run_id", runId1),
+        supabase.from("extracted_records").select("data").eq("run_id", runId2),
+      ]);
+
+      if (before.error) throw before.error;
+      if (after.error) throw after.error;
+
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const SnapshotComparison = require("../src/snapshots/snapshot-comparison");
+
+      const comparison = SnapshotComparison.compare(
+        { rows: before.data.map((r) => r.data) },
+        { rows: after.data.map((r) => r.data) }
+      ) as SnapshotComparisonResult;
+
+      return { ok: true, message: "Comparison complete.", comparison };
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : "Comparison failed." };
+    }
+  }
+
   if (!isAutomationHostConfigured()) {
     return {
       ok: false,
@@ -70,7 +102,7 @@ export async function compareSnapshotsAction(snapshot1: string, snapshot2: strin
   }
 
   try {
-    await automationClient.compareSnapshots({ snapshot1, snapshot2 });
+    await automationClient.compareSnapshots({ snapshot1: runId1, snapshot2: runId2 });
     return { ok: true, message: "Comparison complete." };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Comparison failed." };

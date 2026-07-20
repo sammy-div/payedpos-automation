@@ -119,18 +119,49 @@ export async function getRecentRuns(): Promise<DataEnvelope<AutomationRun[]>> {
   }
 }
 
-// NOTE: getReports() and getSnapshots() below still only read from the
-// older AUTOMATION_API_URL / always-on-host model (src/server.js writing
-// .xlsx/.docx files to local disk). They haven't been migrated to the
-// GitHub Actions + Supabase architecture - that would mean generating
-// reports on demand from the rows Supabase now stores (see
-// automation_runs / extracted_records in supabase/schema.sql) rather
-// than reading pre-generated files, which is a real, separate follow-up
-// rather than something quietly left half-working. Until then, these two
-// only show live data for anyone still running src/server.js directly;
-// otherwise they fall back to mock data even if Supabase is configured.
+interface SuccessfulRunRow {
+  id: string;
+  route: string;
+  record_count: number | null;
+  started_at: string;
+  finished_at: string | null;
+}
 
 export async function getReports(): Promise<DataEnvelope<ReportFile[]>> {
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from("automation_runs")
+        .select("id, route, record_count, started_at, finished_at")
+        .eq("status", "success")
+        .order("started_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      // Each successful run can be downloaded as either format, generated
+      // on demand (see app/api/reports/download/route.ts) rather than
+      // read from pre-generated files - there's nothing to read from disk
+      // in a serverless deployment with no shared filesystem.
+      const reports: ReportFile[] = (data as SuccessfulRunRow[]).flatMap((run) =>
+        (["xlsx", "docx"] as const).map((format) => ({
+          name: `${run.route}-${run.id}.${format}`,
+          format,
+          route: run.route,
+          title: `${run.route} Export`,
+          sizeBytes: 0, // Unknown until generated - not stored, generated fresh each download.
+          generatedAt: run.finished_at ?? run.started_at,
+          downloadPath: `/api/reports/download?runId=${run.id}&format=${format}`,
+        }))
+      );
+
+      return envelope(reports, "live");
+    } catch {
+      return envelope(mockReports, "mock");
+    }
+  }
+
   if (!isAutomationHostConfigured()) {
     return envelope(mockReports, "mock");
   }
@@ -157,6 +188,38 @@ export async function getReports(): Promise<DataEnvelope<ReportFile[]>> {
 }
 
 export async function getSnapshots(): Promise<DataEnvelope<SnapshotFile[]>> {
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from("automation_runs")
+        .select("id, route, record_count, started_at, finished_at")
+        .eq("status", "success")
+        .order("started_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      // Every successful run *is* a snapshot now - there's no separate
+      // snapshot file format, just the rows Supabase already has for
+      // that run. Comparison (added/removed/modified) is computed on
+      // demand between two runs' rows - see compareSnapshotsAction.
+      const snapshots: SnapshotFile[] = (data as SuccessfulRunRow[]).map((run) => ({
+        runId: run.id,
+        fileName: `${run.route}-${(run.finished_at ?? run.started_at).replace(/[:.]/g, "-")}`,
+        route: run.route,
+        savedAt: run.finished_at ?? run.started_at,
+        sizeBytes: 0,
+        recordCount: run.record_count ?? 0,
+        downloadPath: `/api/reports/download?runId=${run.id}&format=xlsx`,
+      }));
+
+      return envelope(snapshots, "live");
+    } catch {
+      return envelope(mockSnapshots, "mock");
+    }
+  }
+
   if (!isAutomationHostConfigured()) {
     return envelope(mockSnapshots, "mock");
   }
@@ -164,6 +227,7 @@ export async function getSnapshots(): Promise<DataEnvelope<SnapshotFile[]>> {
   try {
     const { snapshots } = await automationClient.getSnapshots();
     const files: SnapshotFile[] = snapshots.map((snap) => ({
+      runId: String(snap.fileName ?? ""),
       fileName: String(snap.fileName ?? ""),
       route: "unknown",
       savedAt: String(snap.savedAt ?? ""),
@@ -178,7 +242,7 @@ export async function getSnapshots(): Promise<DataEnvelope<SnapshotFile[]>> {
 }
 
 export async function getSnapshotComparison(): Promise<DataEnvelope<SnapshotComparisonResult | null>> {
-  if (!isAutomationHostConfigured()) {
+  if (!isSupabaseConfigured() && !isAutomationHostConfigured()) {
     return envelope(mockComparison, "mock");
   }
   // Comparison is triggered on demand via the compareSnapshotsAction server action.

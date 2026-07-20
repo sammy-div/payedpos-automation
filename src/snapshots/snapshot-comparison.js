@@ -245,10 +245,22 @@ class SnapshotComparison {
       return null;
     }
 
-    const candidates = ['id', 'ID', 'Id', 'terminalId', 'Terminal ID', 'merchantId', 'Merchant ID', 'Name'];
     const keys2 = new Set(Object.keys(sampleRow2));
+    const sharedKeys = Object.keys(sampleRow1).filter((key) => keys2.has(key));
 
-    return candidates.find((candidate) => Object.prototype.hasOwnProperty.call(sampleRow1, candidate) && keys2.has(candidate)) || null;
+    // Generic pattern match rather than a hardcoded whitelist of
+    // specific field names - real column names for most routes aren't
+    // confirmed, and a whitelist of guessed names would just be wrong
+    // for whichever route it didn't happen to guess correctly (as
+    // "Transaction ID" was, before this fix). Verified against both
+    // realistic identifier names (ID, Terminal ID, merchant_id,
+    // transactionId, terminalID) and common false-positive words that
+    // merely end in "id" (Paid, Void, Grid, Valid, Invalid, Solid,
+    // Avoid, Kid, Squid) - none of the latter match.
+    const idLike = sharedKeys.find(
+      (key) => /(^|[\s_-])id$/i.test(key) || /[a-z]Id$/.test(key) || /[a-z]ID$/.test(key)
+    );
+    return idLike || null;
   }
 }
 

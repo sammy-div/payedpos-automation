@@ -13,8 +13,8 @@ export function SnapshotCompare({
   snapshots: SnapshotFile[];
   initialComparison: SnapshotComparisonResult | null;
 }) {
-  const [before, setBefore] = useState(snapshots[1]?.fileName ?? "");
-  const [after, setAfter] = useState(snapshots[0]?.fileName ?? "");
+  const [before, setBefore] = useState(snapshots[1]?.runId ?? "");
+  const [after, setAfter] = useState(snapshots[0]?.runId ?? "");
   const [comparison, setComparison] = useState<SnapshotComparisonResult | null>(initialComparison);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -24,7 +24,11 @@ export function SnapshotCompare({
     startTransition(async () => {
       const result = await compareSnapshotsAction(before, after);
       setMessage(result.message);
-      if (!result.ok) setComparison(null);
+      if (result.ok && result.comparison) {
+        setComparison(result.comparison);
+      } else if (!result.ok) {
+        setComparison(null);
+      }
     });
   };
 
@@ -39,7 +43,7 @@ export function SnapshotCompare({
             className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:ring-2 focus:ring-accent-soft"
           >
             {snapshots.map((s) => (
-              <option key={s.fileName} value={s.fileName}>
+              <option key={s.runId} value={s.runId}>
                 {s.fileName}
               </option>
             ))}
@@ -51,7 +55,7 @@ export function SnapshotCompare({
             className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-ink font-mono focus:outline-none focus:ring-2 focus:ring-accent-soft"
           >
             {snapshots.map((s) => (
-              <option key={s.fileName} value={s.fileName}>
+              <option key={s.runId} value={s.runId}>
                 {s.fileName}
               </option>
             ))}
